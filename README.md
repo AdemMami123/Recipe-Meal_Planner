@@ -8,7 +8,7 @@ A full-stack web application built with Next.js and Firebase that allows users t
 - **Backend & Database**: Firebase Firestore
 - **Authentication**: Firebase Auth
 - **Storage**: Firebase Storage
-- **AI Integration**: Google Gemini Pro API
+- **AI Integration**: Google Gemini 2.0 Flash API (via AI SDK)
 - **Styling**: Tailwind CSS
 - **Hosting**: Vercel
 

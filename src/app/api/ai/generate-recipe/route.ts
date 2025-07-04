@@ -22,6 +22,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    console.log('Generating recipe with params:', {
+      ingredients,
+      cuisine,
+      dietaryRestrictions,
+      cookingTime,
+      difficulty
+    });
+
     const recipe = await generateRecipe({
       ingredients,
       cuisine: cuisine || 'any',
@@ -30,6 +38,8 @@ export async function POST(request: NextRequest) {
       difficulty: difficulty || 'medium'
     });
 
+    console.log('Generated recipe:', recipe);
+
     return NextResponse.json({
       success: true,
       recipe
@@ -37,6 +47,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error generating recipe:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      return NextResponse.json({
+        success: false,
+        error: `Failed to generate recipe: ${error.message}`
+      }, { status: 500 });
+    }
+    
     return NextResponse.json({
       success: false,
       error: 'Failed to generate recipe'
