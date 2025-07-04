@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import FloatingUploadButton from '@/components/FloatingUploadButton';
-import { Search, Heart, Bookmark, Clock, Users, ArrowLeft, Filter } from 'lucide-react';
+import { Toast } from '@/components/ui/toast';
+import { Search, Heart, Bookmark, Clock, Users, ArrowLeft, Filter, ChefHat, Sparkles, Trash2, MoreVertical } from 'lucide-react';
 
 interface Recipe {
   id: string;
   title: string;
   description: string;
   imageUrl?: string;
+  authorId: string;
   authorName: string;
   prepTime: number;
   cookTime: number;
@@ -32,11 +34,28 @@ export default function RecipesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVariant, setToastVariant] = useState<'default' | 'destructive' | 'success'>('default');
   const router = useRouter();
 
   useEffect(() => {
     fetchRecipes();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/user');
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   useEffect(() => {
     filterRecipes();
@@ -110,6 +129,37 @@ export default function RecipesPage() {
     }
   };
 
+  const handleDelete = async (recipeId: string, recipeTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${recipeTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/recipes/${recipeId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Remove the recipe from the local state
+        setRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
+        setFilteredRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
+        setToastMessage(`"${recipeTitle}" deleted successfully!`);
+        setToastVariant('success');
+        setShowToast(true);
+      } else {
+        const data = await response.json();
+        setToastMessage(data.error || 'Failed to delete recipe');
+        setToastVariant('destructive');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      setToastMessage('An error occurred while deleting the recipe');
+      setToastVariant('destructive');
+      setShowToast(true);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -125,169 +175,269 @@ export default function RecipesPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/3">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading recipes...</p>
+          <div className="relative mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-emerald-400/20 rounded-full blur-lg animate-pulse"></div>
+            <div className="relative p-2 bg-gradient-to-r from-primary/70 to-emerald-400/70 rounded-full shadow-sm">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/70 border-t-transparent"></div>
+            </div>
+          </div>
+          <h2 className="text-base font-semibold mb-1">Discovering Recipes</h2>
+          <p className="text-sm text-muted-foreground">Loading delicious recipes for you...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="container mx-auto px-4 py-2 flex-1 flex flex-col overflow-hidden">
-        <div className="flex items-center gap-3 mb-2 flex-shrink-0">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/3">
+      <div className="container mx-auto px-4 py-4">
+        {/* Header Section */}
+        <div className="flex items-center gap-3 mb-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
-            className="h-8 w-8"
+            className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold">Discover Recipes</h1>
-            <p className="text-muted-foreground text-xs">Explore delicious recipes from our community</p>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-emerald-400/20 rounded-full blur-md"></div>
+                <div className="relative p-1.5 bg-gradient-to-r from-primary/70 to-emerald-400/70 rounded-full">
+                  <ChefHat className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">
+                  Discover Recipes
+                </h1>
+                <p className="text-xs text-muted-foreground">{filteredRecipes.length} delicious recipes from our community</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mb-2 flex-shrink-0">
+        {/* Search and Filter Section */}
+        <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search recipes, ingredients, or tags..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 h-8 text-xs"
+              className="pl-10 h-9 bg-background/60 border-primary/20 focus:border-primary/40 transition-colors"
             />
           </div>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-            <Filter className="h-3 w-3" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 px-3 border-primary/20 hover:bg-primary/5 dark:hover:bg-primary/10"
+          >
+            <Filter className="h-4 w-4 mr-1" />
+            Filter
           </Button>
         </div>
 
         {error && (
-          <div className="mb-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive flex-shrink-0">
+          <div className="mb-4 p-3 bg-destructive/5 border border-destructive/20 rounded-lg text-sm text-destructive">
             {error}
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filteredRecipes.map((recipe) => (
-              <Card key={recipe.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
-                <div 
-                  onClick={() => router.push(`/recipes/${recipe.id}`)}
-                  className="space-y-2"
-                >
-                  {recipe.imageUrl && (
-                    <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                      <img
-                        src={recipe.imageUrl}
-                        alt={recipe.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                  )}
-                  
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle className="text-sm line-clamp-1">{recipe.title}</CardTitle>
-                        <CardDescription className="line-clamp-2 mt-1 text-xs">
-                          {recipe.description}
-                        </CardDescription>
-                      </div>
-                      {recipe.isAIGenerated && (
-                        <Badge variant="secondary" className="ml-1 text-xs px-1 py-0 h-4">
-                          AI
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {recipe.prepTime + recipe.cookTime} min
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {recipe.servings}
-                      </div>
-                      <Badge variant="outline" className="text-xs px-1 py-0 h-4">
-                        {recipe.difficulty}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                </div>
-                
-                <CardContent className="pt-0 pb-2">
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {recipe.tags.slice(0, 2).map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs px-1 py-0 h-4">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {recipe.tags.length > 2 && (
-                      <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
-                        +{recipe.tags.length - 2}
+        {/* Recipe Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredRecipes.map((recipe) => (
+            <Card 
+              key={recipe.id} 
+              className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-0 bg-gradient-to-br from-background to-muted/5 hover:scale-[1.02] overflow-hidden"
+              onClick={() => router.push(`/recipes/${recipe.id}`)}
+            >
+              {recipe.imageUrl ? (
+                <div className="relative h-40 overflow-hidden">
+                  <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {recipe.isAIGenerated && (
+                      <Badge className="bg-gradient-to-r from-primary/80 to-emerald-500/80 text-white text-xs px-2 py-0.5">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        AI
                       </Badge>
                     )}
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      <p>By {recipe.authorName}</p>
-                      <p>{formatDate(recipe.createdAt)}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLike(recipe.id);
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Heart className="h-3 w-3" />
-                      </Button>
-                      <span className="text-xs text-muted-foreground">{recipe.likes}</span>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBookmark(recipe.id);
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Bookmark className="h-3 w-3" />
-                      </Button>
-                      <span className="text-xs text-muted-foreground">{recipe.bookmarks}</span>
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <h3 className="font-semibold text-white text-sm line-clamp-2 mb-1">
+                      {recipe.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-white/90 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{recipe.prepTime + recipe.cookTime}min</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{recipe.servings}</span>
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {filteredRecipes.length === 0 && !loading && (
-            <div className="text-center py-12">
-              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No recipes found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? 'Try adjusting your search terms' : 'No recipes available yet'}
-              </p>
-            </div>
-          )}
+                </div>
+              ) : (
+                <div className="relative h-40 bg-gradient-to-br from-primary/5 to-emerald-400/5 flex items-center justify-center">
+                  <div className="text-center">
+                    <ChefHat className="h-8 w-8 text-primary/40 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">No image</p>
+                  </div>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {recipe.isAIGenerated && (
+                      <Badge className="bg-gradient-to-r from-primary/80 to-emerald-500/80 text-white text-xs px-2 py-0.5">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        AI
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <CardContent className="p-3">
+                {!recipe.imageUrl && (
+                  <div className="mb-2">
+                    <h3 className="font-semibold text-sm line-clamp-2 mb-1">
+                      {recipe.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-muted-foreground text-xs mb-1">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{recipe.prepTime + recipe.cookTime}min</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{recipe.servings}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                  {recipe.description}
+                </p>
+                
+                <div className="flex flex-wrap gap-1 mb-2">
+                  <Badge variant="outline" className="text-xs bg-primary/5 border-primary/20">
+                    {recipe.difficulty}
+                  </Badge>
+                  {recipe.tags.slice(0, 2).map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs bg-muted/50">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {recipe.tags.length > 2 && (
+                    <Badge variant="secondary" className="text-xs bg-muted/50">
+                      +{recipe.tags.length - 2}
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium">By {recipe.authorName}</p>
+                    <p>{formatDate(recipe.createdAt)}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLike(recipe.id);
+                      }}
+                      className="h-7 w-7 p-0 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                    >
+                      <Heart className="h-3 w-3 text-red-500" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground min-w-[16px]">{recipe.likes}</span>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBookmark(recipe.id);
+                      }}
+                      className="h-7 w-7 p-0 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                    >
+                      <Bookmark className="h-3 w-3 text-blue-500" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground min-w-[16px]">{recipe.bookmarks}</span>
+                    
+                    {currentUser && currentUser.id === recipe.authorId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(recipe.id, recipe.title);
+                        }}
+                        className="h-7 w-7 p-0 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-red-500 ml-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+
+        {/* Empty State */}
+        {filteredRecipes.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-emerald-400/20 rounded-full blur-lg"></div>
+              <div className="relative p-4 bg-gradient-to-r from-primary/5 to-emerald-400/5 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                <Search className="h-8 w-8 text-primary/40" />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No recipes found</h3>
+            <p className="text-muted-foreground mb-4 max-w-md mx-auto text-sm">
+              {searchTerm 
+                ? `No recipes match "${searchTerm}". Try different keywords or browse all recipes.` 
+                : 'No recipes available yet. Be the first to share a delicious recipe!'
+              }
+            </p>
+            {searchTerm && (
+              <Button 
+                onClick={() => setSearchTerm('')}
+                variant="outline"
+                size="sm"
+                className="border-primary/20 hover:bg-primary/5 dark:hover:bg-primary/10"
+              >
+                Clear search
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Floating Upload Button */}
       <FloatingUploadButton onUploadSuccess={handleUploadSuccess} />
+      
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          variant={toastVariant}
+          onClose={() => setShowToast(false)}
+        >
+          {toastMessage}
+        </Toast>
+      )}
     </div>
   );
 }

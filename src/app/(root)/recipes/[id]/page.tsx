@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Toast } from '@/components/ui/toast';
 import { 
   ArrowLeft, 
   Clock, 
@@ -14,7 +15,9 @@ import {
   Bookmark, 
   ChefHat,
   Share2,
-  Star
+  Star,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
 
 interface Recipe {
@@ -43,6 +46,11 @@ export default function RecipeDetailPage() {
   const [error, setError] = useState('');
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVariant, setToastVariant] = useState<'default' | 'destructive' | 'success'>('default');
   const router = useRouter();
   const params = useParams();
   const recipeId = params.id as string;
@@ -50,8 +58,21 @@ export default function RecipeDetailPage() {
   useEffect(() => {
     if (recipeId) {
       fetchRecipe();
+      fetchCurrentUser();
     }
   }, [recipeId]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/user');
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchRecipe = async () => {
     try {
@@ -106,6 +127,40 @@ export default function RecipeDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/recipes/${recipeId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setToastMessage('Recipe deleted successfully!');
+        setToastVariant('success');
+        setShowToast(true);
+        setTimeout(() => {
+          router.push('/recipes');
+        }, 1500);
+      } else {
+        const data = await response.json();
+        setToastMessage(data.error || 'Failed to delete recipe');
+        setToastVariant('destructive');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      setToastMessage('An error occurred while deleting the recipe');
+      setToastVariant('destructive');
+      setShowToast(true);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -134,10 +189,15 @@ export default function RecipeDetailPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/3">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading recipe...</p>
+          <div className="relative mb-3">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-emerald-400/20 rounded-full blur-lg animate-pulse"></div>
+            <div className="relative p-2 bg-gradient-to-r from-primary/70 to-emerald-400/70 rounded-full shadow-sm">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/70 border-t-transparent"></div>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">Loading recipe...</p>
         </div>
       </div>
     );
@@ -154,7 +214,7 @@ export default function RecipeDetailPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/3">
       <div className="container mx-auto px-4 py-2 flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2 flex-shrink-0">
@@ -162,7 +222,7 @@ export default function RecipeDetailPage() {
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
-            className="h-8 w-8"
+            className="h-8 w-8 hover:bg-primary/10 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -177,7 +237,7 @@ export default function RecipeDetailPage() {
               variant="ghost"
               size="sm"
               onClick={handleLike}
-              className={`h-8 w-8 p-0 ${isLiked ? 'text-red-500' : ''}`}
+              className={`h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors ${isLiked ? 'text-red-500' : ''}`}
             >
               <Heart className="h-4 w-4" fill={isLiked ? 'currentColor' : 'none'} />
             </Button>
@@ -186,11 +246,26 @@ export default function RecipeDetailPage() {
               variant="ghost"
               size="sm"
               onClick={handleBookmark}
-              className={`h-8 w-8 p-0 ${isBookmarked ? 'text-blue-500' : ''}`}
+              className={`h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors ${isBookmarked ? 'text-blue-500' : ''}`}
             >
               <Bookmark className="h-4 w-4" fill={isBookmarked ? 'currentColor' : 'none'} />
             </Button>
             <span className="text-xs">{recipe.bookmarks}</span>
+            {currentUser && currentUser.id === recipe.authorId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-red-500 ml-2"
+              >
+                {isDeleting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-500 border-t-transparent"></div>
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -200,7 +275,7 @@ export default function RecipeDetailPage() {
             {/* Recipe Image and Info */}
             <div className="lg:col-span-1 space-y-2">
               {recipe.imageUrl && (
-                <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                <div className="aspect-square bg-gradient-to-br from-primary/5 to-emerald-400/5 rounded-lg overflow-hidden">
                   <img
                     src={recipe.imageUrl}
                     alt={recipe.title}
@@ -209,26 +284,26 @@ export default function RecipeDetailPage() {
                 </div>
               )}
               
-              <Card>
+              <Card className="bg-gradient-to-br from-background to-muted/5 border-primary/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Recipe Info</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 pb-3">
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-3 w-3 text-primary/70" />
                       <span>Prep: {recipe.prepTime}m</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-3 w-3 text-primary/70" />
                       <span>Cook: {recipe.cookTime}m</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
+                      <Users className="h-3 w-3 text-primary/70" />
                       <span>{recipe.servings} servings</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3" />
+                      <Star className="h-3 w-3 text-primary/70" />
                       <span>{recipe.difficulty}</span>
                     </div>
                   </div>
@@ -243,7 +318,7 @@ export default function RecipeDetailPage() {
                       <p className="text-xs text-muted-foreground mb-1">Tags:</p>
                       <div className="flex flex-wrap gap-1">
                         {recipe.tags.map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs px-1 py-0 h-4">
+                          <Badge key={index} variant="secondary" className="text-xs px-1 py-0 h-4 bg-primary/10">
                             {tag}
                           </Badge>
                         ))}
@@ -252,7 +327,7 @@ export default function RecipeDetailPage() {
                   )}
 
                   {recipe.isAIGenerated && (
-                    <div className="flex items-center gap-1 text-xs text-purple-600">
+                    <div className="flex items-center gap-1 text-xs text-primary/80">
                       <ChefHat className="h-3 w-3" />
                       <span>AI Generated Recipe</span>
                     </div>
@@ -263,7 +338,7 @@ export default function RecipeDetailPage() {
 
             {/* Ingredients and Instructions */}
             <div className="lg:col-span-2 space-y-3 overflow-y-auto">
-              <Card>
+              <Card className="bg-gradient-to-br from-background to-muted/5 border-primary/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Ingredients</CardTitle>
                 </CardHeader>
@@ -271,7 +346,7 @@ export default function RecipeDetailPage() {
                   <ul className="space-y-1">
                     {parseIngredients(recipe.ingredients).map((ingredient, index) => (
                       <li key={index} className="text-xs flex items-start gap-2">
-                        <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></span>
+                        <span className="w-2 h-2 rounded-full bg-primary/70 mt-1.5 flex-shrink-0"></span>
                         <span>{ingredient}</span>
                       </li>
                     ))}
@@ -279,7 +354,7 @@ export default function RecipeDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-gradient-to-br from-background to-muted/5 border-primary/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Instructions</CardTitle>
                 </CardHeader>
@@ -287,7 +362,7 @@ export default function RecipeDetailPage() {
                   <ol className="space-y-2">
                     {parseInstructions(recipe.instructions).map((instruction, index) => (
                       <li key={index} className="text-xs flex gap-2">
-                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/70 to-emerald-400/70 text-white flex items-center justify-center text-xs font-medium">
                           {index + 1}
                         </span>
                         <span className="pt-0.5">{instruction}</span>
@@ -300,6 +375,16 @@ export default function RecipeDetailPage() {
           </div>
         </div>
       </div>
+      
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          variant={toastVariant}
+          onClose={() => setShowToast(false)}
+        >
+          {toastMessage}
+        </Toast>
+      )}
     </div>
   );
 }
