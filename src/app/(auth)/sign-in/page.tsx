@@ -75,35 +75,35 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-4">
         <div className="flex flex-col space-y-2 text-center">
           <div className="flex justify-center mb-2">
-            <ChefHat className="h-8 w-8 text-primary" />
+            <ChefHat className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
           <p className="text-sm text-muted-foreground">
             Sign in to your Recipe Planner account
           </p>
         </div>
 
         <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-            <CardDescription className="text-center">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="text-lg text-center">Sign In</CardTitle>
+            <CardDescription className="text-center text-sm">
               Enter your email and password to sign in
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleEmailSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+            <form onSubmit={handleEmailSignIn} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-sm">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -112,11 +112,12 @@ export default function SignInPage() {
                   required
                   placeholder="name@example.com"
                   disabled={loading}
+                  className="h-9"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-sm">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -125,10 +126,11 @@ export default function SignInPage() {
                   required
                   placeholder="Enter your password"
                   disabled={loading}
+                  className="h-9"
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full h-9" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign In
               </Button>
@@ -145,7 +147,7 @@ export default function SignInPage() {
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full h-9"
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
@@ -155,7 +157,7 @@ export default function SignInPage() {
           </CardContent>
         </Card>
 
-        <p className="px-8 text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link href="/sign-up" className="underline underline-offset-4 hover:text-primary">
             Sign up

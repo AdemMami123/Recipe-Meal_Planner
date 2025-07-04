@@ -158,137 +158,142 @@ export default function MealPlannerPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading meal planner...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading meal planner...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calendar className="h-8 w-8 text-primary" />
-            Meal Planner
-          </h1>
-          <p className="text-muted-foreground">Plan your weekly meals with drag & drop</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={goToPreviousWeek}>
-            Previous Week
+    <div className="h-screen flex flex-col">
+      <div className="container mx-auto px-4 py-2 flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center gap-3 mb-2 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="h-8 w-8"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-xl font-semibold">{getCurrentWeekRange()}</h2>
-          <Button variant="outline" onClick={goToNextWeek}>
-            Next Week
+          <div className="flex-1">
+            <h1 className="text-lg font-bold flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Meal Planner
+            </h1>
+            <p className="text-muted-foreground text-xs">Plan your weekly meals</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mb-2 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={goToPreviousWeek} size="sm" className="h-7 text-xs px-2">
+              Previous
+            </Button>
+            <h2 className="text-sm font-semibold">{getCurrentWeekRange()}</h2>
+            <Button variant="outline" onClick={goToNextWeek} size="sm" className="h-7 text-xs px-2">
+              Next
+            </Button>
+          </div>
+          <Button onClick={() => router.push('/recipes')} size="sm" className="h-7 text-xs px-2">
+            <Plus className="mr-1 h-3 w-3" />
+            Add Recipes
           </Button>
         </div>
-        <Button onClick={() => router.push('/recipes')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Recipes
-        </Button>
-      </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-          <p className="text-destructive text-sm">{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="mb-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive flex-shrink-0">
+            {error}
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-        {daysOfWeek.map((day) => (
-          <Card key={day} className="min-h-96">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-center">{day}</CardTitle>
-              <CardDescription className="text-center">
-                {getDateForDay(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {mealTypes.map((mealType) => {
-                const mealPlan = getMealPlan(day, mealType);
-                
-                return (
-                  <div key={mealType} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {mealType}
-                      </Badge>
-                      {!mealPlan && (
-                        <select
-                          className="text-xs border rounded px-2 py-1"
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              addMealPlan(day, mealType, e.target.value);
-                              e.target.value = '';
-                            }
-                          }}
-                        >
-                          <option value="">Add recipe...</option>
-                          {availableRecipes.map((recipe) => (
-                            <option key={recipe.id} value={recipe.id}>
-                              {recipe.title}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+        <div className="flex-1 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-2 h-full">
+            {daysOfWeek.map((day) => (
+              <Card key={day} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-center">{day}</CardTitle>
+                  <CardDescription className="text-center text-xs">
+                    {getDateForDay(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 pb-2 overflow-y-auto">
+                  {mealTypes.map((mealType) => {
+                    const mealPlan = getMealPlan(day, mealType);
                     
-                    {mealPlan ? (
-                      <div className="p-2 bg-muted rounded-lg">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-sm line-clamp-1">
-                              {mealPlan.recipe.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {mealPlan.recipe.prepTime + mealPlan.recipe.cookTime}m
-                              <Users className="h-3 w-3" />
-                              {mealPlan.recipe.servings}
+                    return (
+                      <div key={mealType} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-xs capitalize px-1 py-0 h-4">
+                            {mealType}
+                          </Badge>
+                          {!mealPlan && (
+                            <select
+                              className="text-xs border rounded px-1 py-0.5 h-5 text-xs"
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  addMealPlan(day, mealType, e.target.value);
+                                  e.target.value = '';
+                                }
+                              }}
+                            >
+                              <option value="">Add...</option>
+                              {availableRecipes.map((recipe) => (
+                                <option key={recipe.id} value={recipe.id}>
+                                  {recipe.title}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        
+                        {mealPlan ? (
+                          <div className="p-1.5 bg-muted rounded">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-xs line-clamp-1">
+                                  {mealPlan.recipe.title}
+                                </p>
+                                <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                                  <Clock className="h-2 w-2" />
+                                  {mealPlan.recipe.prepTime + mealPlan.recipe.cookTime}m
+                                  <Users className="h-2 w-2" />
+                                  {mealPlan.recipe.servings}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeMealPlan(mealPlan.id)}
+                                className="h-4 w-4 p-0"
+                              >
+                                <Trash2 className="h-2 w-2" />
+                              </Button>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeMealPlan(mealPlan.id)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        ) : (
+                          <div className="p-1.5 border-2 border-dashed border-muted-foreground/25 rounded text-center">
+                            <Plus className="h-3 w-3 mx-auto text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground mt-0.5">Add meal</p>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="p-2 border-2 border-dashed border-muted-foreground/25 rounded-lg text-center">
-                        <Plus className="h-4 w-4 mx-auto text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground mt-1">Add meal</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-      <div className="mt-8 text-center">
-        <Button variant="outline" onClick={() => router.push('/shopping-list')}>
-          Generate Shopping List
-        </Button>
+        <div className="mt-2 text-center flex-shrink-0">
+          <Button variant="outline" onClick={() => router.push('/shopping-list')} size="sm" className="h-7 text-xs px-2">
+            Generate Shopping List
+          </Button>
+        </div>
       </div>
     </div>
   );
