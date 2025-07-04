@@ -43,13 +43,21 @@ export default function ShoppingListPage() {
       const response = await fetch(`/api/meal-plans?start=${startOfWeek.toISOString()}&end=${endOfWeek.toISOString()}`);
       const data = await response.json();
 
-      if (data.success) {
+      console.log('Shopping list fetch response:', { status: response.status, data });
+
+      if (response.ok && data.success) {
         // Extract ingredients from meal plans
         const ingredients: ShoppingListItem[] = [];
         
         data.mealPlans.forEach((plan: any) => {
           if (plan.recipe && plan.recipe.ingredients) {
-            const recipeIngredients = plan.recipe.ingredients.split('\n').filter((ing: string) => ing.trim());
+            // Handle both string and array ingredients
+            let recipeIngredients: string[] = [];
+            if (Array.isArray(plan.recipe.ingredients)) {
+              recipeIngredients = plan.recipe.ingredients.filter((ing: string) => ing.trim());
+            } else if (typeof plan.recipe.ingredients === 'string') {
+              recipeIngredients = plan.recipe.ingredients.split('\n').filter((ing: string) => ing.trim());
+            }
             
             recipeIngredients.forEach((ingredient: string, index: number) => {
               ingredients.push({
@@ -67,9 +75,11 @@ export default function ShoppingListPage() {
 
         setItems(ingredients);
       } else {
+        console.error('Failed to fetch meal plans:', data);
         setError(data.error || 'Failed to generate shopping list');
       }
     } catch (error) {
+      console.error('Error generating shopping list:', error);
       setError('An error occurred while generating shopping list');
     } finally {
       setLoading(false);

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const bookmarksRef = db.collection('bookmarks');
-    const query = bookmarksRef.where('userId', '==', user.id).orderBy('createdAt', 'desc');
+    const query = bookmarksRef.where('userId', '==', user.id);
     
     const snapshot = await query.get();
     
@@ -23,17 +23,26 @@ export async function GET(request: NextRequest) {
       const data = doc.data();
       
       // Get recipe details
-      const recipeDoc = await db.collection('recipes').doc(data.recipeId).get();
-      const recipe = recipeDoc.exists ? { id: recipeDoc.id, ...recipeDoc.data() } : null;
-      
-      if (recipe) {
-        bookmarks.push({
-          id: doc.id,
-          recipe,
-          bookmarkedAt: data.createdAt
-        });
+      try {
+        const recipeDoc = await db.collection('recipes').doc(data.recipeId).get();
+        const recipe = recipeDoc.exists ? { id: recipeDoc.id, ...recipeDoc.data() } : null;
+        
+        if (recipe) {
+          bookmarks.push({
+            id: doc.id,
+            recipe,
+            bookmarkedAt: data.createdAt || new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching recipe ${data.recipeId}:`, error);
+        // Skip this bookmark if recipe fetch fails
+        continue;
       }
     }
+
+    // Sort bookmarks by creation date (newest first)
+    bookmarks.sort((a, b) => new Date(b.bookmarkedAt).getTime() - new Date(a.bookmarkedAt).getTime());
 
     return NextResponse.json({
       success: true,

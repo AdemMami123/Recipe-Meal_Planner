@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import FloatingUploadButton from '@/components/FloatingUploadButton';
 import { Search, Heart, Bookmark, Clock, Users, ArrowLeft, Filter } from 'lucide-react';
 
 interface Recipe {
@@ -115,6 +116,11 @@ export default function RecipesPage() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleUploadSuccess = () => {
+    // Refresh recipes when a new one is uploaded
+    fetchRecipes();
   };
 
   if (loading) {
@@ -279,6 +285,9 @@ export default function RecipesPage() {
           )}
         </div>
       </div>
+
+      {/* Floating Upload Button */}
+      <FloatingUploadButton onUploadSuccess={handleUploadSuccess} />
     </div>
   );
 }

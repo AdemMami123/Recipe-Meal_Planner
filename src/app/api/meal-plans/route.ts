@@ -7,15 +7,20 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser();
     
     if (!user) {
+      console.error('User not authenticated in meal plans GET');
       return NextResponse.json({
         success: false,
         error: 'Not authenticated'
       }, { status: 401 });
     }
 
+    console.log('Fetching meal plans for user:', user.id);
+
     const url = new URL(request.url);
     const start = url.searchParams.get('start');
     const end = url.searchParams.get('end');
+
+    console.log('Date range:', { start, end });
 
     if (!start || !end) {
       return NextResponse.json({
@@ -30,11 +35,14 @@ export async function GET(request: NextRequest) {
       .where('plannedFor', '>=', start)
       .where('plannedFor', '<=', end);
 
+    console.log('Executing query for meal plans...');
     const snapshot = await query.get();
+    console.log('Found meal plans:', snapshot.size);
     
     const mealPlans = [];
     for (const doc of snapshot.docs) {
       const data = doc.data();
+      console.log('Processing meal plan:', doc.id, data);
       
       // Get recipe details
       const recipeDoc = await db.collection('recipes').doc(data.recipeId).get();
@@ -46,8 +54,12 @@ export async function GET(request: NextRequest) {
           ...data,
           recipe
         });
+      } else {
+        console.warn('Recipe not found for meal plan:', doc.id, 'recipeId:', data.recipeId);
       }
     }
+
+    console.log('Returning meal plans:', mealPlans.length);
 
     return NextResponse.json({
       success: true,
